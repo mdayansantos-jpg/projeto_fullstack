@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const sqlite3 = require("sqlite3").verbose(); // Importa o SQLite
 
 const app = express();
 const PORT = 3000;
@@ -7,61 +8,71 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json());
 
-// Array para armazenar usuários
-let users = [];
-let nextId = 1; // id automático
+// CONFIGURAÇÃO DO BANCO DE DADOS
+// Isso criará um arquivo chamado 'database.db' na sua pasta
+const db = new sqlite3.Database("./database.db", (err) => {
+  if (err) console.error("Erro ao abrir banco:", err.message);
+  else console.log("Conectado ao banco de dados SQLite.");
+});
+
+// Criar a tabela de usuários se ela não existir
+db.run(`CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL
+)`);
+
+// --- ROTAS CRUD ---
 
 // CREATE
 app.post("/users", (req, res) => {
   const { name, email } = req.body;
-  const newUser = { id: nextId++, name, email };
-  users.push(newUser);
-  res.json(newUser);
+  const sql = `INSERT INTO users (name, email) VALUES (?, ?)`;
+  
+  db.run(sql, [name, email], function (err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ id: this.lastID, name, email });
+  });
 });
 
 // READ ALL
 app.get("/users", (req, res) => {
-  res.json(users);
+  db.all("SELECT * FROM users", [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
 });
 
 // READ BY ID
 app.get("/users/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  const user = users.find(u => u.id === id);
-  if (user) {
-    res.json(user);
-  } else {
-    res.status(404).json({ error: "Usuário não encontrado" });
-  }
+  const sql = "SELECT * FROM users WHERE id = ?";
+  db.get(sql, [req.params.id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    row ? res.json(row) : res.status(404).json({ error: "Usuário não encontrado" });
+  });
 });
 
 // UPDATE
 app.put("/users/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  const user = users.find(u => u.id === id);
-  if (user) {
-    const { name, email } = req.body;
-    user.name = name;
-    user.email = email;
-    res.json(user);
-  } else {
-    res.status(404).json({ error: "Usuário não encontrado" });
-  }
+  const { name, email } = req.body;
+  const sql = `UPDATE users SET name = ?, email = ? WHERE id = ?`;
+  
+  db.run(sql, [name, email, req.params.id], function (err) {
+    if (err) return res.status(500).json({ error: err.message });
+    if (this.changes === 0) return res.status(404).json({ error: "Usuário não encontrado" });
+    res.json({ id: req.params.id, name, email });
+  });
 });
 
 // DELETE
 app.delete("/users/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  const index = users.findIndex(u => u.id === id);
-  if (index !== -1) {
-    const deleted = users.splice(index, 1);
-    res.json(deleted[0]);
-  } else {
-    res.status(404).json({ error: "Usuário não encontrado" });
-  }
+  const sql = "DELETE FROM users WHERE id = ?";
+  db.run(sql, [req.params.id], function (err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: "Deletado com sucesso", id: req.params.id });
+  });
 });
 
 app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+  console.log(`Servidor rodando em http://localhost:${PORT}`);
 });
-

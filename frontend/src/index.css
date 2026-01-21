@@ -25,7 +25,8 @@ a:hover {
 body {
   margin: 0;
   display: flex;
-  place-items: center;
+  justify-content: center;
+  align-items: center;
   min-width: 320px;
   min-height: 100vh;
 }
@@ -64,5 +65,77 @@ button:focus-visible {
   }
   button {
     background-color: #f9f9f9;
+  }
+}
+
+.container {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.form-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+input {
+  padding: 0.6em 1.2em;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background-color: #1a1a1a;
+  color: inherit;
+  flex-grow: 1;
+  min-width: 200px;
+}
+
+input:focus {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+.user-list {
+  list-style: none;
+  padding: 0;
+}
+
+.user-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: rgba(255, 255, 255, 0.05);
+  margin-bottom: 0.5rem;
+  border-radius: 8px;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-primary { background-color: #646cff; color: white; }
+.btn-primary:hover { background-color: #535bf2; }
+
+.btn-secondary { background-color: #555; color: white; }
+
+.btn-edit { background-color: #eab308; color: black; }
+.btn-edit:hover { background-color: #ca8a04; }
+
+.btn-delete { background-color: #ef4444; color: white; }
+.btn-delete:hover { background-color: #dc2626; }
+
+@media (prefers-color-scheme: light) {
+  input {
+    background-color: #fff;
+    border: 1px solid #ccc;
+  }
+  .user-item {
+    background-color: #f9f9f9;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
 }
