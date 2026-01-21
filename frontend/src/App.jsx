@@ -11,21 +11,33 @@ function App() {
 
   useEffect(() => {
     fetch(`${API_URL}/users`)
-      .then(res => res.json())
-      .then(setUsers);
+      .then(async res => {
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      })
+      .then(setUsers)
+      .catch(err => console.error("Erro ao carregar usuários:", err));
   }, []);
 
   const addUser = async () => {
-    await fetch(`${API_URL}/users`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email })
-    });
+    try {
+      const resPost = await fetch(`${API_URL}/users`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email })
+      });
+      if (!resPost.ok) throw new Error(await resPost.text());
 
-    const res = await fetch(`${API_URL}/users`);
-    setUsers(await res.json());
-    setName("");
-    setEmail("");
+      const res = await fetch(`${API_URL}/users`);
+      if (!res.ok) throw new Error(await res.text());
+      
+      setUsers(await res.json());
+      setName("");
+      setEmail("");
+    } catch (error) {
+      console.error("Erro ao adicionar usuário:", error);
+      alert("Erro ao salvar. Verifique o console (F12) para detalhes.");
+    }
   };
 
   const updateUser = async () => {
