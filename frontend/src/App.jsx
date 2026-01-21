@@ -12,10 +12,7 @@ function App() {
   const [email, setEmail] = useState("");
   const [editingId, setEditingId] = useState(null);
 
-  useEffect(() => {
-    // Debug: Mostra no console do navegador qual URL está sendo usada
-    console.log("Tentando conectar ao backend em:", API_URL);
-
+  const fetchUsers = () => {
     fetch(`${API_URL}/users`)
       .then(async res => {
         const contentType = res.headers.get("content-type");
@@ -27,6 +24,12 @@ function App() {
       })
       .then(setUsers)
       .catch(err => console.error("Erro ao carregar usuários:", err));
+  };
+
+  useEffect(() => {
+    fetchUsers(); // Busca inicial
+    const interval = setInterval(fetchUsers, 5000); // Atualiza a cada 5 segundos
+    return () => clearInterval(interval); // Limpa ao sair
   }, []);
 
   const addUser = async () => {

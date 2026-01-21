@@ -1,7 +1,7 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const sqlite3 = require("sqlite3").verbose(); // Importa o SQLite
-const path = require("path");
+const { Pool } = require("pg"); // Importa o Pool do PostgreSQL
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,69 +15,82 @@ app.get("/", (req, res) => {
 });
 
 // CONFIGURAÇÃO DO BANCO DE DADOS
-// Isso criará um arquivo chamado 'database.db' na sua pasta
-const dbPath = path.resolve(__dirname, "database.db");
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) console.error("Erro ao abrir banco:", err.message);
-  else console.log("Conectado ao banco de dados SQLite.");
+// Conexão com PostgreSQL (Supabase, Neon, Railway, etc)
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false // Necessário para conexões SSL em produção
+  }
 });
 
 // Criar a tabela de usuários se ela não existir
-db.run(`CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+pool.query(`CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
     email TEXT NOT NULL
-)`);
+)`).then(() => console.log("Tabela users verificada/criada"))
+  .catch(err => console.error("Erro ao criar tabela:", err));
 
 // --- ROTAS CRUD ---
 
 // CREATE
-app.post("/users", (req, res) => {
+app.post("/users", async (req, res) => {
   const { name, email } = req.body;
-  const sql = `INSERT INTO users (name, email) VALUES (?, ?)`;
-  
-  db.run(sql, [name, email], function (err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ id: this.lastID, name, email });
-  });
+  try {
+    const result = await pool.query(
+      "INSERT INTO users (name, email) VALUES ($1, $2) RETURNING *",
+      [name, email]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // READ ALL
-app.get("/users", (req, res) => {
-  db.all("SELECT * FROM users", [], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
+app.get("/users", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM users ORDER BY id ASC");
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // READ BY ID
-app.get("/users/:id", (req, res) => {
-  const sql = "SELECT * FROM users WHERE id = ?";
-  db.get(sql, [req.params.id], (err, row) => {
-    if (err) return res.status(500).json({ error: err.message });
-    row ? res.json(row) : res.status(404).json({ error: "Usuário não encontrado" });
-  });
+app.get("/users/:id", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM users WHERE id = $1", [req.params.id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: "Usuário não encontrado" });
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // UPDATE
-app.put("/users/:id", (req, res) => {
+app.put("/users/:id", async (req, res) => {
   const { name, email } = req.body;
-  const sql = `UPDATE users SET name = ?, email = ? WHERE id = ?`;
-  
-  db.run(sql, [name, email, req.params.id], function (err) {
-    if (err) return res.status(500).json({ error: err.message });
-    if (this.changes === 0) return res.status(404).json({ error: "Usuário não encontrado" });
-    res.json({ id: req.params.id, name, email });
-  });
+  try {
+    const result = await pool.query(
+      "UPDATE users SET name = $1, email = $2 WHERE id = $3 RETURNING *",
+      [name, email, req.params.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: "Usuário não encontrado" });
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // DELETE
-app.delete("/users/:id", (req, res) => {
-  const sql = "DELETE FROM users WHERE id = ?";
-  db.run(sql, [req.params.id], function (err) {
-    if (err) return res.status(500).json({ error: err.message });
+app.delete("/users/:id", async (req, res) => {
+  try {
+    await pool.query("DELETE FROM users WHERE id = $1", [req.params.id]);
     res.json({ message: "Deletado com sucesso", id: req.params.id });
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.listen(PORT, () => {
