@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const sqlite3 = require("sqlite3").verbose(); // Importa o SQLite
+const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -8,9 +9,15 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// Rota de teste para verificar se o servidor está rodando
+app.get("/", (req, res) => {
+  res.json({ status: "Backend is running" });
+});
+
 // CONFIGURAÇÃO DO BANCO DE DADOS
 // Isso criará um arquivo chamado 'database.db' na sua pasta
-const db = new sqlite3.Database("./database.db", (err) => {
+const dbPath = path.resolve(__dirname, "database.db");
+const db = new sqlite3.Database(dbPath, (err) => {
   if (err) console.error("Erro ao abrir banco:", err.message);
   else console.log("Conectado ao banco de dados SQLite.");
 });
