@@ -1,4 +1,3 @@
-// i have been here
 import { useEffect, useState } from "react";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -10,8 +9,15 @@ function App() {
   const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
+    // Debug: Mostra no console do navegador qual URL está sendo usada
+    console.log("Tentando conectar ao backend em:", API_URL);
+
     fetch(`${API_URL}/users`)
       .then(async res => {
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("A API retornou HTML em vez de JSON. Verifique se VITE_API_URL está correta.");
+        }
         if (!res.ok) throw new Error(await res.text());
         return res.json();
       })
