@@ -28,8 +28,6 @@ function App() {
 
   useEffect(() => {
     fetchUsers(); // Busca inicial
-    const interval = setInterval(fetchUsers, 5000); // Atualiza a cada 5 segundos
-    return () => clearInterval(interval); // Limpa ao sair
   }, []);
 
   const addUser = async () => {
